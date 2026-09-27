@@ -55,7 +55,6 @@
     padding-bottom:4px;
   }
   #composerToggleIcon{ font-size:12px; color:var(--ink-soft); font-weight:600; }
-  .composer-body{ overflow:hidden; }
   .composer-body.collapsed{ display:none; }
   .composer label{ font-size:12px; color:var(--ink-soft); font-weight:700; display:block; margin:10px 0 5px; }
   .composer input, .composer textarea{
@@ -160,7 +159,7 @@
 
   <div class="composer">
     <div class="composer-head" onclick="toggleComposer()">
-      <span>✏️ 새 글 쓰기</span>
+      <span>✏️ 글쓰기</span>
       <span id="composerToggleIcon">▲ 접기</span>
     </div>
     <div class="composer-body" id="composerBody">
@@ -297,7 +296,7 @@ function toggleComposer(){
   const body = document.getElementById('composerBody');
   const icon = document.getElementById('composerToggleIcon');
   const collapsed = body.classList.toggle('collapsed');
-  icon.textContent = collapsed ? '▼ 새 글 쓰기' : '▲ 접기';
+  icon.textContent = collapsed ? '▼ 펼치기' : '▲ 접기';
 }
 window.toggleComposer = toggleComposer;
 let noteColor = NOTE_COLORS[0];
@@ -360,7 +359,7 @@ function renderPosts(){
   const el = document.getElementById('board');
   const baseW = BOARD_BASE_W;
   if(!posts.length){
-    el.innerHTML = '<p class="empty-note">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>';
+    el.innerHTML = '';
     el.style.width = BOARD_BASE_W + 'px';
     el.style.minHeight = BOARD_BASE_H + 'px';
     return;
