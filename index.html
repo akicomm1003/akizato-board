@@ -49,6 +49,14 @@
     background:var(--paper); border-radius:14px; padding:20px 22px;
     box-shadow:0 6px 16px rgba(74,53,36,0.1);
   }
+  .composer-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-weight:700; font-size:14px; color:var(--ink); cursor:pointer;
+    padding-bottom:4px;
+  }
+  #composerToggleIcon{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+  .composer-body{ overflow:hidden; }
+  .composer-body.collapsed{ display:none; }
   .composer label{ font-size:12px; color:var(--ink-soft); font-weight:700; display:block; margin:10px 0 5px; }
   .composer input, .composer textarea{
     width:100%; font-family:inherit; font-size:14px;
@@ -72,7 +80,7 @@
   .pinbtn:hover{ background:#FFD35C; }
 
   html, body{ overflow-x:auto; }
-  .board{ position:absolute; top:0; left:0; width:100%; min-height:100vh; user-select:none; z-index:0; }
+  .board{ position:absolute; top:0; left:0; width:1920px; min-height:1080px; user-select:none; z-index:0; }
   .note{
     position:absolute; width:200px; padding:16px 14px 12px;
     box-shadow:0 6px 14px rgba(74,53,36,0.16);
@@ -151,6 +159,11 @@
   </div>
 
   <div class="composer">
+    <div class="composer-head" onclick="toggleComposer()">
+      <span>✏️ 새 글 쓰기</span>
+      <span id="composerToggleIcon">▲ 접기</span>
+    </div>
+    <div class="composer-body" id="composerBody">
     <label>이름 (선택)</label>
     <input id="nickInput" placeholder="익명 작성 가능">
     <label>내용</label>
@@ -179,6 +192,7 @@
 
     <div class="composer-row">
       <button class="pinbtn" onclick="submitPost()">📌 게시판에 붙이기</button>
+    </div>
     </div>
   </div>
 </div>
@@ -252,6 +266,8 @@ const auth = getAuth(fbApp);
 const postsCol = collection(db, "posts");
 
 const NOTE_COLORS = ['#FFEB80','#FFAFC6','#8CE8C9','#8FCBFF','#FFC170','#D2B3FF'];
+const BOARD_BASE_W = 1920;
+const BOARD_BASE_H = 1080;
 let isAdmin = false;
 let posts = [];
 
@@ -275,6 +291,15 @@ function setNoteColor(el){
   el.classList.add('active');
 }
 window.setNoteColor = setNoteColor;
+
+/* ---------------- 작성란 접기/펼치기 ---------------- */
+function toggleComposer(){
+  const body = document.getElementById('composerBody');
+  const icon = document.getElementById('composerToggleIcon');
+  const collapsed = body.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '▼ 새 글 쓰기' : '▲ 접기';
+}
+window.toggleComposer = toggleComposer;
 let noteColor = NOTE_COLORS[0];
 
 /* ---------------- 낙서 패드 ---------------- */
@@ -333,11 +358,11 @@ onSnapshot(postsCol, snapshot=>{
 
 function renderPosts(){
   const el = document.getElementById('board');
-  const baseW = window.innerWidth || 880;
+  const baseW = BOARD_BASE_W;
   if(!posts.length){
     el.innerHTML = '<p class="empty-note">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>';
-    el.style.width = '100%';
-    el.style.minHeight = '100vh';
+    el.style.width = BOARD_BASE_W + 'px';
+    el.style.minHeight = BOARD_BASE_H + 'px';
     return;
   }
   el.innerHTML = posts.map((p,i)=>{
@@ -357,8 +382,8 @@ function renderPosts(){
 }
 function growBoardToFitNotes(){
   const el = document.getElementById('board');
-  const baseW = window.innerWidth || 880;
-  const baseH = window.innerHeight || 700;
+  const baseW = BOARD_BASE_W;
+  const baseH = BOARD_BASE_H;
   let maxBottom = baseH;
   let maxRight = 0;
   el.querySelectorAll('.note').forEach(n=>{
@@ -376,11 +401,10 @@ async function submitPost(){
   const body = document.getElementById('bodyInput').value.trim();
   const img = hasDrawn ? doodleCanvas.toDataURL('image/png') : '';
   if(!body && !img){ showToast('내용이나 낙서를 남겨주세요'); return; }
-  const baseW = window.innerWidth || 880;
   const entry = {
     nick, body, img, color: noteColor,
-    x: 20 + Math.random() * Math.max(200, baseW - 240),
-    y: Math.random()*500,
+    x: 20 + Math.random() * (BOARD_BASE_W - 240),
+    y: 20 + Math.random() * (BOARD_BASE_H - 300),
     ts: Date.now(),
   };
   try{
