@@ -60,7 +60,7 @@
   .swatch-row{ display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
   .swatch{ width:22px; height:22px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); cursor:pointer; }
   .swatch.active{ box-shadow:0 0 0 2px var(--accent-deep); }
-  canvas#doodlePad{ width:100%; max-width:260px; border:1.5px dashed var(--line); border-radius:10px; background:#fff; touch-action:none; cursor:crosshair; display:block; margin-top:8px; }
+  canvas#doodlePad{ width:100%; max-width:300px; border:1.5px dashed var(--line); border-radius:10px; background:#fff; touch-action:none; cursor:crosshair; display:block; margin-top:8px; }
   .smallbtn{ border:none; background:#F5EDD6; color:var(--ink-soft); font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px; cursor:pointer; }
 
   .composer-row{ display:flex; justify-content:flex-end; margin-top:14px; }
@@ -70,7 +70,8 @@
   }
   .pinbtn:hover{ background:#FFD35C; }
 
-  .board{ position:relative; min-height:620px; padding:10px 0 40px; user-select:none; }
+  .board-scroll{ overflow-x:auto; overflow-y:visible; }
+  .board{ position:relative; min-height:620px; width:100%; padding:10px 0 40px; user-select:none; }
   .note{
     position:absolute; width:200px; padding:16px 14px 12px;
     box-shadow:0 6px 14px rgba(74,53,36,0.16);
@@ -117,13 +118,19 @@
   .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:9px 18px; border-radius:999px; font-size:12.5px; z-index:200; opacity:0; transition:opacity .25s; pointer-events:none; }
   .toast.show{ opacity:0.95; }
 
+  @media (max-width:600px){
+    .swatch{ width:26px; height:26px; }
+    .del{ padding:6px 11px; font-size:11px; }
+    .smallbtn{ padding:7px 13px; font-size:12px; }
+    .pinbtn, .btn{ min-height:40px; }
+  }
   @media (max-width:480px){
     .wrap{ padding:0 12px; }
     .composer{ padding:16px 14px; margin-left:12px; margin-right:12px; }
     .signboard{ margin-left:12px; margin-right:12px; padding:20px 16px 16px; }
     .signboard h1{ font-size:18px; }
-    .note{ width:150px; padding:12px 10px 10px; font-size:12px; }
     .topbar{ padding:12px 12px 0; }
+    .roundbtn{ min-height:36px; }
   }
 </style>
 </head>
@@ -157,7 +164,7 @@
   </div>
 
   <label>낙서 (선택)</label>
-  <canvas id="doodlePad" width="260" height="140"></canvas>
+  <canvas id="doodlePad" width="300" height="180"></canvas>
   <div class="swatch-row">
     <span class="swatch pen active" style="background:#4A3524" data-color="#4A3524" onclick="setPenColor(this)"></span>
     <span class="swatch pen" style="background:#D8453C" data-color="#D8453C" onclick="setPenColor(this)"></span>
@@ -173,15 +180,18 @@
 </div>
 
 <div class="wrap">
-  <div class="board" id="board"></div>
+  <div class="board-scroll">
+    <div class="board" id="board"></div>
+  </div>
   <p class="empty-note" id="emptyNote" style="display:none;">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>
 </div>
 
 <div class="modal-bg" id="helpModalBg">
-  <div class="modal">
+  <div class="modal" style="max-width:520px;">
     <button class="close-x" onclick="closeModal('helpModalBg')">×</button>
     <h3>이용 방법</h3>
     <ul class="helplist">
+      <li>PC에 최적화 되어 있습니다.</li>
       <li>이름은 선택이며, 비워두면 익명으로 남습니다. 별명을 써도 괜찮지만 악의로 타인을 사칭하진 말아주세요.</li>
       <li>붙은 포스트잇은 꾹 누르고 자유롭게 옮길 수 있습니다.</li>
       <li>타인의 포스트잇을 이동해도 괜찮지만 가려지지 않게 조심해주세요.</li>
@@ -329,12 +339,14 @@ function renderPosts(){
   const empty = document.getElementById('emptyNote');
   if(!posts.length){ el.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
+  const scrollEl = document.querySelector('.board-scroll');
+  const baseW = scrollEl.clientWidth || 880;
   el.innerHTML = posts.map((p,i)=>{
-    const x = (typeof p.x === 'number') ? p.x : (10 + (i*17)%70);
+    const x = (typeof p.x === 'number') ? p.x : (20 + (i*70)%Math.max(200, baseW-240));
     const y = (typeof p.y === 'number') ? p.y : (20 + (i*90)%480);
     const bg = p.color || NOTE_COLORS[0];
     return `
-    <div class="note" data-id="${p.id}" style="left:${x}%;top:${y}px;background:${bg};transform:rotate(${pickRotate(p.id)}deg);">
+    <div class="note" data-id="${p.id}" style="left:${x}px;top:${y}px;background:${bg};transform:rotate(${pickRotate(p.id)}deg);">
       <div class="pin"></div>
       <div class="nick">${escapeHtml(p.nick || '익명')}</div>
       ${p.img ? `<img class="doodleimg" src="${p.img}">` : ''}
@@ -342,6 +354,22 @@ function renderPosts(){
       ${isAdmin ? `<div class="meta"><button class="del" onclick="editPost('${p.id}')">수정</button><button class="del" onclick="deletePost('${p.id}')">삭제</button></div>` : ''}
     </div>`;
   }).join('');
+  growBoardToFitNotes();
+}
+function growBoardToFitNotes(){
+  const el = document.getElementById('board');
+  const scrollEl = document.querySelector('.board-scroll');
+  const baseW = scrollEl.clientWidth || 880;
+  let maxBottom = 620;
+  let maxRight = 0;
+  el.querySelectorAll('.note').forEach(n=>{
+    const bottom = n.offsetTop + n.offsetHeight;
+    const right = n.offsetLeft + n.offsetWidth;
+    if(bottom > maxBottom) maxBottom = bottom;
+    if(right > maxRight) maxRight = right;
+  });
+  el.style.width = Math.max(baseW, maxRight + 60) + 'px';
+  el.style.minHeight = (maxBottom + 60) + 'px';
 }
 
 async function submitPost(){
@@ -349,9 +377,11 @@ async function submitPost(){
   const body = document.getElementById('bodyInput').value.trim();
   const img = hasDrawn ? doodleCanvas.toDataURL('image/png') : '';
   if(!body && !img){ showToast('내용이나 낙서를 남겨주세요'); return; }
+  const scrollEl = document.querySelector('.board-scroll');
+  const baseW = scrollEl.clientWidth || 880;
   const entry = {
     nick, body, img, color: noteColor,
-    x: 5 + Math.random()*70,
+    x: 20 + Math.random() * Math.max(200, baseW - 240),
     y: Math.random()*500,
     ts: Date.now(),
   };
@@ -412,15 +442,17 @@ boardEl.addEventListener('pointermove', e=>{
   if(!dragId) return;
   const note = boardEl.querySelector(`.note[data-id="${dragId}"]`);
   if(!note) return;
-  const boardW = boardEl.clientWidth || 880;
-  const dxPct = ((e.clientX - dragStartX) / boardW) * 100;
-  const dy = e.clientY - dragStartY;
-  let newLeft = dragOrigLeft + dxPct;
-  let newTop = dragOrigTop + dy;
-  newLeft = Math.max(0, Math.min(80, newLeft));
+  let newLeft = dragOrigLeft + (e.clientX - dragStartX);
+  let newTop = dragOrigTop + (e.clientY - dragStartY);
+  newLeft = Math.max(0, newLeft);
   newTop = Math.max(0, newTop);
-  note.style.left = newLeft + '%';
+  note.style.left = newLeft + 'px';
   note.style.top = newTop + 'px';
+  const liveRight = newLeft + note.offsetWidth + 60;
+  const liveBottom = newTop + note.offsetHeight + 60;
+  const curW = parseFloat(boardEl.style.width) || boardEl.clientWidth;
+  if(liveRight > curW){ boardEl.style.width = liveRight + 'px'; }
+  if(liveBottom > boardEl.clientHeight){ boardEl.style.minHeight = liveBottom + 'px'; }
 });
 boardEl.addEventListener('pointerup', async e=>{
   if(!dragId) return;
