@@ -70,6 +70,7 @@
   .swatch.active{ box-shadow:0 0 0 2px var(--accent-deep); }
   canvas#doodlePad{ width:100%; max-width:300px; border:1.5px dashed var(--line); border-radius:10px; background:#fff; touch-action:none; cursor:crosshair; display:block; margin-top:8px; }
   .smallbtn{ border:none; background:#F5EDD6; color:var(--ink-soft); font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px; cursor:pointer; }
+  .smallbtn.active-eraser{ background:var(--accent); color:var(--accent-ink); }
 
   .composer-row{ display:flex; justify-content:flex-end; margin-top:14px; }
   .pinbtn{
@@ -186,7 +187,8 @@
       <span class="swatch pen" style="background:#3E7EB0" data-color="#3E7EB0" onclick="setPenColor(this)"></span>
       <span class="swatch pen" style="background:#5C8A3E" data-color="#5C8A3E" onclick="setPenColor(this)"></span>
       <span class="swatch pen" style="background:#E8B923" data-color="#E8B923" onclick="setPenColor(this)"></span>
-      <button class="smallbtn" onclick="clearDoodle()">지우기</button>
+      <button class="smallbtn" id="eraserBtn" onclick="useEraser()">🧹 지우개</button>
+      <button class="smallbtn" onclick="clearDoodle()">전체 지우기</button>
     </div>
 
     <div class="composer-row">
@@ -305,6 +307,7 @@ let noteColor = NOTE_COLORS[0];
 const doodleCanvas = document.getElementById('doodlePad');
 const doodleCtx = doodleCanvas.getContext('2d');
 let penColor = '#4A3524';
+let penWidth = 3;
 let drawing = false;
 let hasDrawn = false;
 doodleCtx.fillStyle = '#ffffff';
@@ -322,6 +325,7 @@ doodleCanvas.addEventListener('pointerdown', e=>{
   doodleCanvas.setPointerCapture(e.pointerId);
   const p = getPos(e);
   doodleCtx.strokeStyle = penColor;
+  doodleCtx.lineWidth = penWidth;
   doodleCtx.beginPath();
   doodleCtx.moveTo(p.x, p.y);
 });
@@ -335,9 +339,18 @@ doodleCanvas.addEventListener('pointerup', ()=>{ drawing=false; });
 doodleCanvas.addEventListener('pointerleave', ()=>{ drawing=false; });
 function setPenColor(el){
   penColor = el.dataset.color;
+  penWidth = 3;
   document.querySelectorAll('.swatch.pen').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
+  document.getElementById('eraserBtn').classList.remove('active-eraser');
 }
+function useEraser(){
+  penColor = '#FFFFFF';
+  penWidth = 16;
+  document.querySelectorAll('.swatch.pen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('eraserBtn').classList.add('active-eraser');
+}
+window.useEraser = useEraser;
 window.setPenColor = setPenColor;
 function clearDoodle(){
   doodleCtx.fillStyle='#ffffff';
