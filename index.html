@@ -20,14 +20,15 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
+    position:relative;
     min-height:100vh;
     background:var(--cork);
     color:var(--ink);
     font-family:'Noto Sans KR', sans-serif;
     line-height:1.6;
-    padding:0 0 60px;
   }
-  .wrap{ max-width:920px; margin:0 auto; padding:0 20px; }
+  .foreground{ position:relative; z-index:1; padding:0 0 60px; pointer-events:none; }
+  .foreground > *{ pointer-events:auto; }
 
   .signboard{
     max-width:520px; margin:34px auto 10px; text-align:center;
@@ -71,8 +72,7 @@
   .pinbtn:hover{ background:#FFD35C; }
 
   html, body{ overflow-x:auto; }
-  .board-scroll{ overflow:visible; }
-  .board{ position:relative; min-height:620px; width:100%; padding:10px 0 40px; user-select:none; }
+  .board{ position:absolute; top:0; left:0; width:100%; min-height:100vh; user-select:none; z-index:0; }
   .note{
     position:absolute; width:200px; padding:16px 14px 12px;
     box-shadow:0 6px 14px rgba(74,53,36,0.16);
@@ -96,7 +96,7 @@
 
   .empty-note{ color:var(--ink-soft); text-align:center; padding:40px 10px; font-size:14px; }
 
-  .topbar{ max-width:920px; margin:0 auto; padding:14px 20px 0; display:flex; justify-content:flex-end; gap:8px; }
+  .topbar{ padding:14px 20px 0; display:flex; justify-content:flex-end; gap:8px; }
   .roundbtn{
     border:none; background:var(--paper); color:var(--ink-soft); font-size:12px; font-weight:700;
     padding:6px 14px; border-radius:999px; cursor:pointer; box-shadow:0 2px 6px rgba(74,53,36,0.08);
@@ -126,7 +126,6 @@
     .pinbtn, .btn{ min-height:40px; }
   }
   @media (max-width:480px){
-    .wrap{ padding:0 12px; }
     .composer{ padding:16px 14px; margin-left:12px; margin-right:12px; }
     .signboard{ margin-left:12px; margin-right:12px; padding:20px 16px 16px; }
     .signboard h1{ font-size:18px; }
@@ -137,54 +136,51 @@
 </head>
 <body>
 
-<div class="topbar">
-  <button class="roundbtn help" id="helpBtn" onclick="openHelp()">?</button>
-  <button class="roundbtn" id="adminBtn" onclick="openAdmin()">관리자</button>
-</div>
+<div class="board" id="board"></div>
 
-<div class="signboard">
-  <div class="pin"></div>
-  <h1>아키자토 마을 게시판</h1>
-  <p>낙서, 건의, 응원, 무엇이든 자유롭게 붙여주세요</p>
-</div>
-
-<div class="composer">
-  <label>이름 (선택)</label>
-  <input id="nickInput" placeholder="익명 작성 가능">
-  <label>내용</label>
-  <textarea id="bodyInput" placeholder="자유롭게 적어주세요!"></textarea>
-
-  <label>포스트잇 색상</label>
-  <div class="swatch-row" id="noteColorRow">
-    <span class="swatch ncolor active" style="background:#FFEB80" data-color="#FFEB80" onclick="setNoteColor(this)"></span>
-    <span class="swatch ncolor" style="background:#FFAFC6" data-color="#FFAFC6" onclick="setNoteColor(this)"></span>
-    <span class="swatch ncolor" style="background:#8CE8C9" data-color="#8CE8C9" onclick="setNoteColor(this)"></span>
-    <span class="swatch ncolor" style="background:#8FCBFF" data-color="#8FCBFF" onclick="setNoteColor(this)"></span>
-    <span class="swatch ncolor" style="background:#FFC170" data-color="#FFC170" onclick="setNoteColor(this)"></span>
-    <span class="swatch ncolor" style="background:#D2B3FF" data-color="#D2B3FF" onclick="setNoteColor(this)"></span>
+<div class="foreground">
+  <div class="topbar">
+    <button class="roundbtn help" id="helpBtn" onclick="openHelp()">?</button>
+    <button class="roundbtn" id="adminBtn" onclick="openAdmin()">관리자</button>
   </div>
 
-  <label>낙서 (선택)</label>
-  <canvas id="doodlePad" width="300" height="180"></canvas>
-  <div class="swatch-row">
-    <span class="swatch pen active" style="background:#4A3524" data-color="#4A3524" onclick="setPenColor(this)"></span>
-    <span class="swatch pen" style="background:#D8453C" data-color="#D8453C" onclick="setPenColor(this)"></span>
-    <span class="swatch pen" style="background:#3E7EB0" data-color="#3E7EB0" onclick="setPenColor(this)"></span>
-    <span class="swatch pen" style="background:#5C8A3E" data-color="#5C8A3E" onclick="setPenColor(this)"></span>
-    <span class="swatch pen" style="background:#E8B923" data-color="#E8B923" onclick="setPenColor(this)"></span>
-    <button class="smallbtn" onclick="clearDoodle()">지우기</button>
+  <div class="signboard">
+    <div class="pin"></div>
+    <h1>아키자토 마을 게시판</h1>
+    <p>낙서, 건의, 응원, 무엇이든 자유롭게 붙여주세요</p>
   </div>
 
-  <div class="composer-row">
-    <button class="pinbtn" onclick="submitPost()">📌 게시판에 붙이기</button>
-  </div>
-</div>
+  <div class="composer">
+    <label>이름 (선택)</label>
+    <input id="nickInput" placeholder="익명 작성 가능">
+    <label>내용</label>
+    <textarea id="bodyInput" placeholder="자유롭게 적어주세요!"></textarea>
 
-<div class="wrap">
-  <div class="board-scroll">
-    <div class="board" id="board"></div>
+    <label>포스트잇 색상</label>
+    <div class="swatch-row" id="noteColorRow">
+      <span class="swatch ncolor active" style="background:#FFEB80" data-color="#FFEB80" onclick="setNoteColor(this)"></span>
+      <span class="swatch ncolor" style="background:#FFAFC6" data-color="#FFAFC6" onclick="setNoteColor(this)"></span>
+      <span class="swatch ncolor" style="background:#8CE8C9" data-color="#8CE8C9" onclick="setNoteColor(this)"></span>
+      <span class="swatch ncolor" style="background:#8FCBFF" data-color="#8FCBFF" onclick="setNoteColor(this)"></span>
+      <span class="swatch ncolor" style="background:#FFC170" data-color="#FFC170" onclick="setNoteColor(this)"></span>
+      <span class="swatch ncolor" style="background:#D2B3FF" data-color="#D2B3FF" onclick="setNoteColor(this)"></span>
+    </div>
+
+    <label>낙서 (선택)</label>
+    <canvas id="doodlePad" width="300" height="180"></canvas>
+    <div class="swatch-row">
+      <span class="swatch pen active" style="background:#4A3524" data-color="#4A3524" onclick="setPenColor(this)"></span>
+      <span class="swatch pen" style="background:#D8453C" data-color="#D8453C" onclick="setPenColor(this)"></span>
+      <span class="swatch pen" style="background:#3E7EB0" data-color="#3E7EB0" onclick="setPenColor(this)"></span>
+      <span class="swatch pen" style="background:#5C8A3E" data-color="#5C8A3E" onclick="setPenColor(this)"></span>
+      <span class="swatch pen" style="background:#E8B923" data-color="#E8B923" onclick="setPenColor(this)"></span>
+      <button class="smallbtn" onclick="clearDoodle()">지우기</button>
+    </div>
+
+    <div class="composer-row">
+      <button class="pinbtn" onclick="submitPost()">📌 게시판에 붙이기</button>
+    </div>
   </div>
-  <p class="empty-note" id="emptyNote" style="display:none;">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>
 </div>
 
 <div class="modal-bg" id="helpModalBg">
@@ -337,11 +333,13 @@ onSnapshot(postsCol, snapshot=>{
 
 function renderPosts(){
   const el = document.getElementById('board');
-  const empty = document.getElementById('emptyNote');
-  if(!posts.length){ el.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  const scrollEl = document.querySelector('.board-scroll');
-  const baseW = scrollEl.clientWidth || 880;
+  const baseW = window.innerWidth || 880;
+  if(!posts.length){
+    el.innerHTML = '<p class="empty-note">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>';
+    el.style.width = '100%';
+    el.style.minHeight = '100vh';
+    return;
+  }
   el.innerHTML = posts.map((p,i)=>{
     const x = (typeof p.x === 'number') ? p.x : (20 + (i*70)%Math.max(200, baseW-240));
     const y = (typeof p.y === 'number') ? p.y : (20 + (i*90)%480);
@@ -359,9 +357,9 @@ function renderPosts(){
 }
 function growBoardToFitNotes(){
   const el = document.getElementById('board');
-  const scrollEl = document.querySelector('.board-scroll');
-  const baseW = scrollEl.clientWidth || 880;
-  let maxBottom = 620;
+  const baseW = window.innerWidth || 880;
+  const baseH = window.innerHeight || 700;
+  let maxBottom = baseH;
   let maxRight = 0;
   el.querySelectorAll('.note').forEach(n=>{
     const bottom = n.offsetTop + n.offsetHeight;
@@ -378,8 +376,7 @@ async function submitPost(){
   const body = document.getElementById('bodyInput').value.trim();
   const img = hasDrawn ? doodleCanvas.toDataURL('image/png') : '';
   if(!body && !img){ showToast('내용이나 낙서를 남겨주세요'); return; }
-  const scrollEl = document.querySelector('.board-scroll');
-  const baseW = scrollEl.clientWidth || 880;
+  const baseW = window.innerWidth || 880;
   const entry = {
     nick, body, img, color: noteColor,
     x: 20 + Math.random() * Math.max(200, baseW - 240),
