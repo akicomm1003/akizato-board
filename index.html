@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아키자토 마을 게시판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cork:#FFF3DB;
+    --ink:#4A3524;
+    --ink-soft:#8A7355;
+    --paper:#FFFFFF;
+    --accent:#FFD23F;
+    --accent-deep:#F0A500;
+    --accent-ink:#7A4E00;
+    --line:#F0DFA0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:var(--cork);
+    color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif;
+    line-height:1.6;
+    padding:0 0 60px;
+  }
+  .wrap{ max-width:920px; margin:0 auto; padding:0 20px; }
+
+  .signboard{
+    max-width:520px; margin:34px auto 10px; text-align:center;
+    background:var(--paper); border-radius:16px;
+    padding:26px 24px 20px; box-shadow:0 6px 16px rgba(74,53,36,0.12);
+    position:relative; border:1.5px solid var(--line);
+  }
+  .signboard .pin{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    width:17px; height:17px; border-radius:50%; background:#D8453C;
+    box-shadow:0 2px 3px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.4);
+  }
+  .signboard h1{ margin:0 0 6px; font-size:23px; font-weight:400; font-family:'Jua','Noto Sans KR',sans-serif; line-height:1.2; color:var(--ink); }
+  .signboard p{ margin:0; font-size:13px; line-height:1.3; color:var(--ink-soft); }
+
+  .composer{
+    max-width:520px; margin:26px auto 40px;
+    background:var(--paper); border-radius:14px; padding:20px 22px;
+    box-shadow:0 6px 16px rgba(74,53,36,0.1);
+  }
+  .composer label{ font-size:12px; color:var(--ink-soft); font-weight:700; display:block; margin:10px 0 5px; }
+  .composer input, .composer textarea{
+    width:100%; font-family:inherit; font-size:14px;
+    border:1.5px solid var(--line); border-radius:10px; padding:10px 12px;
+    background:#FFFBF2; color:var(--ink); resize:vertical;
+  }
+  .composer input:focus, .composer textarea:focus{ outline:none; border-color:var(--accent-deep); }
+  .composer textarea{ min-height:80px; }
+
+  .swatch-row{ display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .swatch{ width:22px; height:22px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); cursor:pointer; }
+  .swatch.active{ box-shadow:0 0 0 2px var(--accent-deep); }
+  canvas#doodlePad{ width:100%; max-width:260px; border:1.5px dashed var(--line); border-radius:10px; background:#fff; touch-action:none; cursor:crosshair; display:block; margin-top:8px; }
+  .smallbtn{ border:none; background:#F5EDD6; color:var(--ink-soft); font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px; cursor:pointer; }
+
+  .composer-row{ display:flex; justify-content:flex-end; margin-top:14px; }
+  .pinbtn{
+    border:none; background:var(--accent); color:var(--accent-ink); font-weight:700;
+    font-size:13.5px; padding:10px 20px; border-radius:999px; cursor:pointer;
+  }
+  .pinbtn:hover{ background:#FFD35C; }
+
+  .board{ position:relative; min-height:620px; padding:10px 0 40px; user-select:none; }
+  .note{
+    position:absolute; width:200px; padding:16px 14px 12px;
+    box-shadow:0 6px 14px rgba(74,53,36,0.16);
+    font-size:13px; color:#4A3524; cursor:grab; touch-action:none;
+  }
+  .note.dragging{ cursor:grabbing; box-shadow:0 12px 26px rgba(74,53,36,0.28); z-index:50; }
+  .note .pin{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    width:16px; height:16px; border-radius:50%; background:#D8453C;
+    box-shadow:0 2px 3px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.4);
+  }
+  .note .nick{ font-weight:800; font-size:12.5px; margin-bottom:5px; }
+  .note .doodleimg{ width:100%; border-radius:6px; margin-bottom:6px; display:block; pointer-events:none; }
+  .note .body{ white-space:pre-wrap; word-break:break-word; pointer-events:none; }
+  .note .meta{ display:flex; justify-content:flex-end; gap:6px; margin-top:8px; }
+  .note .del{
+    border:none; background:rgba(0,0,0,0.08); color:#4A3524; font-size:10px;
+    padding:3px 8px; border-radius:999px; cursor:pointer; pointer-events:auto;
+  }
+  .note .del:hover{ background:rgba(0,0,0,0.16); }
+
+  .empty-note{ color:var(--ink-soft); text-align:center; padding:40px 10px; font-size:14px; }
+
+  .topbar{ max-width:920px; margin:0 auto; padding:14px 20px 0; display:flex; justify-content:flex-end; gap:8px; }
+  .roundbtn{
+    border:none; background:var(--paper); color:var(--ink-soft); font-size:12px; font-weight:700;
+    padding:6px 14px; border-radius:999px; cursor:pointer; box-shadow:0 2px 6px rgba(74,53,36,0.08);
+  }
+  .roundbtn.help{ width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .roundbtn.on{ background:var(--accent-deep); color:#fff; }
+
+  .modal-bg{ display:none; position:fixed; inset:0; background:rgba(74,53,36,0.4); align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal-bg.show{ display:flex; }
+  .modal{ background:var(--paper); border-radius:16px; padding:24px; max-width:340px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.25); position:relative; }
+  .modal h3{ margin:0 0 6px; font-size:16px; }
+  .modal p{ font-size:12.5px; color:var(--ink-soft); margin:0 0 12px; line-height:1.6; }
+  .modal input{ width:100%; font-family:inherit; font-size:14px; border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .modal-actions{ display:flex; gap:8px; margin-top:14px; }
+  .btn{ border:none; padding:9px 16px; border-radius:999px; font-size:13px; cursor:pointer; background:var(--accent); color:var(--accent-ink); font-weight:700; }
+  .btn.ghost{ background:#F5EDD6; color:var(--ink-soft); }
+  .close-x{ position:absolute; top:12px; right:14px; background:none; border:none; font-size:16px; color:var(--ink-soft); cursor:pointer; }
+  .helplist{ font-size:12.5px; color:var(--ink); margin:0; padding-left:18px; line-height:1.9; }
+
+  .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:9px 18px; border-radius:999px; font-size:12.5px; z-index:200; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast.show{ opacity:0.95; }
+
+  @media (max-width:480px){
+    .wrap{ padding:0 12px; }
+    .composer{ padding:16px 14px; margin-left:12px; margin-right:12px; }
+    .signboard{ margin-left:12px; margin-right:12px; padding:20px 16px 16px; }
+    .signboard h1{ font-size:18px; }
+    .note{ width:150px; padding:12px 10px 10px; font-size:12px; }
+    .topbar{ padding:12px 12px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="roundbtn help" id="helpBtn" onclick="openHelp()">?</button>
+  <button class="roundbtn" id="adminBtn" onclick="openAdmin()">관리자</button>
+</div>
+
+<div class="signboard">
+  <div class="pin"></div>
+  <h1>아키자토 마을 게시판</h1>
+  <p>낙서, 건의, 응원, 무엇이든 자유롭게 붙여주세요</p>
+</div>
+
+<div class="composer">
+  <label>이름 (선택)</label>
+  <input id="nickInput" placeholder="익명 작성 가능">
+  <label>내용</label>
+  <textarea id="bodyInput" placeholder="자유롭게 적어주세요!"></textarea>
+
+  <label>포스트잇 색상</label>
+  <div class="swatch-row" id="noteColorRow">
+    <span class="swatch ncolor active" style="background:#FFEB80" data-color="#FFEB80" onclick="setNoteColor(this)"></span>
+    <span class="swatch ncolor" style="background:#FFAFC6" data-color="#FFAFC6" onclick="setNoteColor(this)"></span>
+    <span class="swatch ncolor" style="background:#8CE8C9" data-color="#8CE8C9" onclick="setNoteColor(this)"></span>
+    <span class="swatch ncolor" style="background:#8FCBFF" data-color="#8FCBFF" onclick="setNoteColor(this)"></span>
+    <span class="swatch ncolor" style="background:#FFC170" data-color="#FFC170" onclick="setNoteColor(this)"></span>
+    <span class="swatch ncolor" style="background:#D2B3FF" data-color="#D2B3FF" onclick="setNoteColor(this)"></span>
+  </div>
+
+  <label>낙서 (선택)</label>
+  <canvas id="doodlePad" width="260" height="140"></canvas>
+  <div class="swatch-row">
+    <span class="swatch pen active" style="background:#4A3524" data-color="#4A3524" onclick="setPenColor(this)"></span>
+    <span class="swatch pen" style="background:#D8453C" data-color="#D8453C" onclick="setPenColor(this)"></span>
+    <span class="swatch pen" style="background:#3E7EB0" data-color="#3E7EB0" onclick="setPenColor(this)"></span>
+    <span class="swatch pen" style="background:#5C8A3E" data-color="#5C8A3E" onclick="setPenColor(this)"></span>
+    <span class="swatch pen" style="background:#E8B923" data-color="#E8B923" onclick="setPenColor(this)"></span>
+    <button class="smallbtn" onclick="clearDoodle()">지우기</button>
+  </div>
+
+  <div class="composer-row">
+    <button class="pinbtn" onclick="submitPost()">📌 게시판에 붙이기</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="board" id="board"></div>
+  <p class="empty-note" id="emptyNote" style="display:none;">아직 붙은 글이 없어요. 첫 글을 남겨보세요!</p>
+</div>
+
+<div class="modal-bg" id="helpModalBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('helpModalBg')">×</button>
+    <h3>이용 방법</h3>
+    <ul class="helplist">
+      <li>이름은 선택이며, 비워두면 익명으로 남습니다. 별명을 써도 괜찮지만 악의로 타인을 사칭하진 말아주세요.</li>
+      <li>붙은 포스트잇은 꾹 누르고 자유롭게 옮길 수 있습니다.</li>
+      <li>타인의 포스트잇을 이동해도 괜찮지만 가려지지 않게 조심해주세요.</li>
+      <li>글 삭제는 운영진만 할 수 있으며, 내용을 편집 / 삭제 원할 시 총괄계로 DM 부탁드립니다. (그림은 편집 불가능) 또한 익명성을 악용해 커뮤니티 공지 및 규칙에 어긋나는 내용이 보일 경우 임의로 무통보 삭제합니다.</li>
+      <li>커뮤니티 &lt;아키자토의 컨페티&gt; 러너 분들만 사용 가능한 공간입니다. 외부로 주소 및 화면이 노출되지 않도록 주의 부탁드립니다.</li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('helpModalBg')">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="editModalBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('editModalBg')">×</button>
+    <h3>글 수정</h3>
+    <p>내용만 수정할 수 있어요. 낙서 그림은 바꿀 수 없어요.</p>
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:700;display:block;margin:10px 0 5px;">이름</label>
+    <input id="editNickInput" placeholder="익명">
+    <label style="font-size:12px;color:var(--ink-soft);font-weight:700;display:block;margin:10px 0 5px;">내용</label>
+    <textarea id="editBodyInput" style="width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-height:80px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveEdit()">저장</button>
+      <button class="btn ghost" onclick="closeModal('editModalBg')">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="adminModalBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('adminModalBg')">×</button>
+    <h3>관리자 모드</h3>
+    <p>운영진들만 사용할 수 있습니다.</p>
+    <input type="email" id="adminEmailInput" placeholder="관리자 이메일" style="margin-bottom:8px;">
+    <input type="password" id="adminPassInput" placeholder="비밀번호">
+    <div class="modal-actions">
+      <button class="btn" onclick="submitAdminPass()">확인</button>
+      <button class="btn ghost" onclick="closeModal('adminModalBg')">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCAgO9bSyqtCPbbcxpvD4mnQYrkxkdEDYs",
+  authDomain: "akizato-board.firebaseapp.com",
+  projectId: "akizato-board",
+  storageBucket: "akizato-board.firebasestorage.app",
+  messagingSenderId: "1017326225617",
+  appId: "1:1017326225617:web:4dfd3f901de86477315df0"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+const postsCol = collection(db, "posts");
+
+const NOTE_COLORS = ['#FFEB80','#FFAFC6','#8CE8C9','#8FCBFF','#FFC170','#D2B3FF'];
+let isAdmin = false;
+let posts = [];
+
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function openHelp(){ openModal('helpModalBg'); }
+window.openHelp = openHelp;
+window.closeModal = closeModal;
+
+function pickRotate(id){
+  let h=0; for(let i=0;i<id.length;i++){ h=(h*17+id.charCodeAt(i))>>>0; }
+  return ((h % 700)/100) - 3.5;
+}
+
+/* ---------------- 포스트잇 색상 선택 ---------------- */
+function setNoteColor(el){
+  noteColor = el.dataset.color;
+  document.querySelectorAll('.swatch.ncolor').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+window.setNoteColor = setNoteColor;
+let noteColor = NOTE_COLORS[0];
+
+/* ---------------- 낙서 패드 ---------------- */
+const doodleCanvas = document.getElementById('doodlePad');
+const doodleCtx = doodleCanvas.getContext('2d');
+let penColor = '#4A3524';
+let drawing = false;
+let hasDrawn = false;
+doodleCtx.fillStyle = '#ffffff';
+doodleCtx.fillRect(0,0,doodleCanvas.width,doodleCanvas.height);
+doodleCtx.lineJoin='round'; doodleCtx.lineCap='round'; doodleCtx.lineWidth=3;
+
+function getPos(e){
+  const r = doodleCanvas.getBoundingClientRect();
+  const scaleX = doodleCanvas.width / r.width;
+  const scaleY = doodleCanvas.height / r.height;
+  return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+doodleCanvas.addEventListener('pointerdown', e=>{
+  drawing = true; hasDrawn = true;
+  doodleCanvas.setPointerCapture(e.pointerId);
+  const p = getPos(e);
+  doodleCtx.strokeStyle = penColor;
+  doodleCtx.beginPath();
+  doodleCtx.moveTo(p.x, p.y);
+});
+doodleCanvas.addEventListener('pointermove', e=>{
+  if(!drawing) return;
+  const p = getPos(e);
+  doodleCtx.lineTo(p.x, p.y);
+  doodleCtx.stroke();
+});
+doodleCanvas.addEventListener('pointerup', ()=>{ drawing=false; });
+doodleCanvas.addEventListener('pointerleave', ()=>{ drawing=false; });
+function setPenColor(el){
+  penColor = el.dataset.color;
+  document.querySelectorAll('.swatch.pen').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+window.setPenColor = setPenColor;
+function clearDoodle(){
+  doodleCtx.fillStyle='#ffffff';
+  doodleCtx.fillRect(0,0,doodleCanvas.width,doodleCanvas.height);
+  hasDrawn = false;
+}
+window.clearDoodle = clearDoodle;
+
+/* ---------------- 게시글 (Firestore 실시간 동기화) ---------------- */
+onSnapshot(postsCol, snapshot=>{
+  posts = snapshot.docs.map(d=>({ id:d.id, ...d.data() }));
+  renderPosts();
+}, err=>{
+  console.error('실시간 동기화 오류:', err);
+  showToast('게시판을 불러오지 못했어요');
+});
+
+function renderPosts(){
+  const el = document.getElementById('board');
+  const empty = document.getElementById('emptyNote');
+  if(!posts.length){ el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = posts.map((p,i)=>{
+    const x = (typeof p.x === 'number') ? p.x : (10 + (i*17)%70);
+    const y = (typeof p.y === 'number') ? p.y : (20 + (i*90)%480);
+    const bg = p.color || NOTE_COLORS[0];
+    return `
+    <div class="note" data-id="${p.id}" style="left:${x}%;top:${y}px;background:${bg};transform:rotate(${pickRotate(p.id)}deg);">
+      <div class="pin"></div>
+      <div class="nick">${escapeHtml(p.nick || '익명')}</div>
+      ${p.img ? `<img class="doodleimg" src="${p.img}">` : ''}
+      ${p.body ? `<div class="body">${escapeHtml(p.body)}</div>` : ''}
+      ${isAdmin ? `<div class="meta"><button class="del" onclick="editPost('${p.id}')">수정</button><button class="del" onclick="deletePost('${p.id}')">삭제</button></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function submitPost(){
+  const nick = document.getElementById('nickInput').value.trim();
+  const body = document.getElementById('bodyInput').value.trim();
+  const img = hasDrawn ? doodleCanvas.toDataURL('image/png') : '';
+  if(!body && !img){ showToast('내용이나 낙서를 남겨주세요'); return; }
+  const entry = {
+    nick, body, img, color: noteColor,
+    x: 5 + Math.random()*70,
+    y: Math.random()*500,
+    ts: Date.now(),
+  };
+  try{
+    await addDoc(postsCol, entry);
+    document.getElementById('nickInput').value='';
+    document.getElementById('bodyInput').value='';
+    clearDoodle();
+    showToast('게시판에 붙였어요');
+  }catch(e){ console.error(e); showToast('저장에 실패했어요'); }
+}
+window.submitPost = submitPost;
+
+async function deletePost(id){
+  if(!isAdmin) return;
+  try{ await deleteDoc(doc(db,'posts',id)); }
+  catch(e){ console.error(e); showToast('삭제에 실패했어요'); }
+}
+window.deletePost = deletePost;
+
+let editingPostId = null;
+function editPost(id){
+  if(!isAdmin) return;
+  const p = posts.find(x=>x.id===id);
+  if(!p) return;
+  editingPostId = id;
+  document.getElementById('editNickInput').value = p.nick || '';
+  document.getElementById('editBodyInput').value = p.body || '';
+  openModal('editModalBg');
+}
+window.editPost = editPost;
+async function saveEdit(){
+  if(!isAdmin || !editingPostId) return;
+  const nick = document.getElementById('editNickInput').value.trim();
+  const body = document.getElementById('editBodyInput').value.trim();
+  try{
+    await updateDoc(doc(db,'posts',editingPostId), { nick, body });
+    closeModal('editModalBg');
+    showToast('수정했어요');
+  }catch(e){ console.error(e); showToast('수정에 실패했어요'); }
+}
+window.saveEdit = saveEdit;
+
+/* ---------------- 드래그 이동 (누구나 가능, x/y만 수정) ---------------- */
+const boardEl = document.getElementById('board');
+let dragId = null, dragStartX=0, dragStartY=0, dragOrigLeft=0, dragOrigTop=0;
+boardEl.addEventListener('pointerdown', e=>{
+  const note = e.target.closest('.note');
+  if(!note || e.target.classList.contains('del')) return;
+  dragId = note.dataset.id;
+  note.classList.add('dragging');
+  note.setPointerCapture(e.pointerId);
+  dragStartX = e.clientX; dragStartY = e.clientY;
+  dragOrigLeft = parseFloat(note.style.left);
+  dragOrigTop = parseFloat(note.style.top);
+});
+boardEl.addEventListener('pointermove', e=>{
+  if(!dragId) return;
+  const note = boardEl.querySelector(`.note[data-id="${dragId}"]`);
+  if(!note) return;
+  const boardW = boardEl.clientWidth || 880;
+  const dxPct = ((e.clientX - dragStartX) / boardW) * 100;
+  const dy = e.clientY - dragStartY;
+  let newLeft = dragOrigLeft + dxPct;
+  let newTop = dragOrigTop + dy;
+  newLeft = Math.max(0, Math.min(80, newLeft));
+  newTop = Math.max(0, newTop);
+  note.style.left = newLeft + '%';
+  note.style.top = newTop + 'px';
+});
+boardEl.addEventListener('pointerup', async e=>{
+  if(!dragId) return;
+  const note = boardEl.querySelector(`.note[data-id="${dragId}"]`);
+  const id = dragId;
+  dragId = null;
+  if(!note) return;
+  note.classList.remove('dragging');
+  const finalLeft = parseFloat(note.style.left);
+  const finalTop = parseFloat(note.style.top);
+  try{ await updateDoc(doc(db,'posts',id), { x: finalLeft, y: finalTop }); }
+  catch(e){ console.error(e); showToast('위치 저장에 실패했어요'); }
+});
+
+/* ---------------- 관리자 (Firebase Authentication) ---------------- */
+onAuthStateChanged(auth, user=>{
+  isAdmin = !!user;
+  const btn = document.getElementById('adminBtn');
+  if(isAdmin){ btn.classList.add('on'); btn.textContent='관리자 모드 ON'; }
+  else{ btn.classList.remove('on'); btn.textContent='관리자'; }
+  renderPosts();
+});
+
+function openAdmin(){
+  if(isAdmin){
+    signOut(auth).then(()=> showToast('관리자 모드를 껐어요'));
+    return;
+  }
+  document.getElementById('adminEmailInput').value='';
+  document.getElementById('adminPassInput').value='';
+  openModal('adminModalBg');
+}
+window.openAdmin = openAdmin;
+
+async function submitAdminPass(){
+  const email = document.getElementById('adminEmailInput').value.trim();
+  const pass = document.getElementById('adminPassInput').value;
+  if(!email || !pass){ showToast('이메일과 비밀번호를 입력해주세요'); return; }
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+    closeModal('adminModalBg');
+    showToast('관리자 모드 켜짐');
+  }catch(e){
+    console.error(e);
+    showToast('로그인에 실패했어요. 이메일/비밀번호를 확인해주세요');
+  }
+}
+window.submitAdminPass = submitAdminPass;
+</script>
+</body>
+</html>
